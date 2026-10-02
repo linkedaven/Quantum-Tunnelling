@@ -17,7 +17,7 @@ each one linked to exactly where it's used in `server.py`.
 With $\hbar = m = 1$:
 
 $$
-i \frac{\partial \psi}{\partial t} = -\frac{1}{2}\frac{\partial^2 \psi}{\partial x^2} + V(x)\,\psi
+i \frac{\partial \psi}{\partial t} = -\frac{1}{2}\frac{\partial^2 \psi}{\partial x^2} + V(x)\ \psi
 $$
 
 solved via the **split-step Fourier method** (Strang splitting): the
@@ -25,11 +25,11 @@ kinetic term is solved exactly in Fourier space, and the potential term is
 applied as two half-steps around it:
 
 $$
-\psi \leftarrow e^{-iV\,dt/2}\,\psi
+\psi \leftarrow e^{-iV\,dt/2}\ \psi
 \qquad
-\psi \leftarrow \mathrm{IFFT}\!\left[\, e^{-i k^2 dt/2}\, \mathrm{FFT}[\psi] \,\right]
+\psi \leftarrow \mathrm{IFFT}\!\left[\  e^{-i k^2 dt/2}\  \mathrm{FFT}[\psi] \ \right]
 \qquad
-\psi \leftarrow e^{-iV\,dt/2}\,\psi
+\psi \leftarrow e^{-iV\ dt/2}\ \psi
 $$
 
 The barrier is a rectangular potential of height $V_0$ and width $w$. The
@@ -39,7 +39,7 @@ mechanics allows it anyway, with a transmission probability given by the
 exact rectangular-barrier formula:
 
 $$
-T = \left[\, 1 + \frac{V_0^2 \sinh^2(\kappa w)}{4E(V_0-E)} \,\right]^{-1}
+T = \left[\ 1 + \frac{V_0^2 \sinh^2(\kappa w)}{4E(V_0-E)} \ \right]^{-1}
 \qquad \kappa = \sqrt{2(V_0-E)} \quad (E < V_0)
 $$
 
