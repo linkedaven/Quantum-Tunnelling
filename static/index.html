@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Quantum Tunneling</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Spectral:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#eceff5;--panel:#ffffff;--plot:#fafbfd;--text:#18202e;--muted:#5d6a80;--grid:#d9dfeb;
+  --wave:#0b66c3;--barrier:#c76a00;--left:#c2354f;--right:#0a8f7f;--on-accent:#ffffff;--err:#b3261e;
+  --serif:Spectral,Georgia,"Times New Roman",serif;--mono:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;
+  box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#0e1320;--panel:#151c2c;--plot:#0b101b;--text:#dbe4f3;--muted:#8794ab;--grid:#222c42;
+    --wave:#6ec1ff;--barrier:#ffb454;--left:#ff8097;--right:#5eead4;--on-accent:#06111f;--err:#ff8a80;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0e1320;--panel:#151c2c;--plot:#0b101b;--text:#dbe4f3;--muted:#8794ab;--grid:#222c42;
+  --wave:#6ec1ff;--barrier:#ffb454;--left:#ff8097;--right:#5eead4;--on-accent:#06111f;--err:#ff8a80;
+}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font-family:var(--serif);line-height:1.55}
+main{max-width:1120px;margin:0 auto;padding:30px 20px 40px}
+header{margin-bottom:22px}
+h1{font:300 clamp(2rem,5vw,3.1rem)/1.05 var(--serif);letter-spacing:-.015em;margin:0 0 10px}
+.sub{max-width:62ch;color:var(--muted);margin:0}
+.layout{display:grid;grid-template-columns:minmax(0,1fr) 272px;gap:20px;align-items:start}
+@media (max-width:840px){.layout{grid-template-columns:1fr}}
+.plot{background:var(--plot);border:1px solid var(--grid);border-radius:10px;padding:8px}
+canvas{display:block;width:100%;height:auto;aspect-ratio:10/5.6}
+.readout{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin:16px 0 0}
+@media (max-width:620px){.readout{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.cell{border-left:3px solid var(--grid);padding-left:11px}
+.cell.e{border-color:var(--barrier)}.cell.t{border-color:var(--wave)}
+.cell.l{border-color:var(--left)}.cell.r{border-color:var(--right)}
+dt{font-size:.85rem;color:var(--muted)}
+dd{margin:2px 0 0;font:500 1.2rem/1.25 var(--mono);letter-spacing:-.02em}
+.hint{font-size:.78rem;color:var(--muted);margin-top:3px}
+.panel{background:var(--panel);border:1px solid var(--grid);border-radius:10px;padding:18px}
+h2{font:600 1.05rem/1.2 var(--serif);margin:0 0 14px}
+label{display:block;font-size:.92rem;color:var(--muted);margin-bottom:12px}
+input{display:block;width:100%;margin-top:4px;padding:9px 11px;background:var(--plot);color:var(--text);
+  border:1px solid var(--grid);border-radius:6px;font:400 .95rem var(--mono)}
+.actions{display:flex;gap:10px;margin-top:16px}
+button{flex:1;padding:10px 14px;border-radius:6px;font:600 .95rem var(--serif);cursor:pointer;border:1px solid var(--grid);
+  background:transparent;color:var(--text)}
+button:hover{border-color:var(--muted)}
+button.primary{background:var(--wave);border-color:var(--wave);color:var(--on-accent)}
+button.primary:hover{filter:brightness(1.1)}
+input:focus-visible,button:focus-visible{outline:2px solid var(--wave);outline-offset:2px}
+#range{font-size:.8rem;color:var(--muted);margin:14px 0 0}
+#msg{min-height:1.3em;margin:10px 0 0;color:var(--err);font-size:.88rem}
+.note{color:var(--muted);font-size:.82rem;max-width:80ch;margin:22px 0 0}
+.tip{font-size:.8rem;color:var(--muted);margin:10px 0 0}
+canvas{cursor:grab;touch-action:none}
+input[type=range]{padding:0;border:none;background:none;accent-color:var(--wave);cursor:pointer}
+.tbl{margin-top:16px;overflow-x:auto}
+table.pk{width:100%;border-collapse:collapse;font-size:.85rem}
+.pk th{font-weight:400;color:var(--muted);text-align:left;padding:4px 12px 6px 0;border-bottom:1px solid var(--grid);white-space:nowrap}
+.pk td{padding:7px 12px 7px 0;font-family:var(--mono);border-bottom:1px solid var(--grid);white-space:nowrap}
+.pk td.st{color:var(--muted);font-family:var(--serif);font-size:.8rem}
+.sw{display:inline-block;width:16px;height:4px;border-radius:2px;vertical-align:middle}
+</style>
+</head>
+<body>
+<main>
+<header>
+  <h1>Quantum tunneling</h1>
+  <p class="sub">A Gaussian wave packet meets a rectangular barrier. Python solves the Schrödinger equation; this page draws each frame.</p>
+</header>
+<div class="layout">
+  <section>
+    <div class="plot"><canvas id="cv" width="1000" height="560"></canvas></div>
+    <div class="tbl"><table class="pk">
+      <thead><tr><th></th><th>k₀</th><th>E</th><th>Analytic T</th><th>Reflected P_L</th><th>Transmitted P_R</th><th></th></tr></thead>
+      <tbody id="pk"></tbody>
+    </table></div>
+  </section>
+  <aside class="panel">
+    <h2>Barrier and packet</h2>
+    <label>Barrier height V₀<input id="V0" type="number" step="any" value="10"></label>
+    <label>Barrier width<input id="bw" type="number" step="any" value="2"></label>
+    <label>Packet momentum k₀<input id="k0" type="number" step="any" value="4"></label>
+    <label>Wave packets: <span id="nval">1</span><input id="np" type="range" min="1" max="5" step="1" value="1"></label>
+    <label>k₀ step per packet<input id="dk" type="number" step="any" value="0.5"></label>
+    <div class="actions"><button id="run" class="primary">Run</button><button id="pp">Pause</button></div>
+    <div class="actions"><button id="rv">Reset view</button></div>
+    <p id="range"></p>
+    <p class="tip">Drag the plot to pan in any direction. Scroll to zoom, Shift+scroll to zoom vertically, double-click to reset. Gray bands are the absorbing edges, where the wave leaves without reflecting.</p>
+    <p id="msg" role="alert"></p>
+  </aside>
+</div>
+<p class="note">Simulated transmission is measured once the packet has clearly separated, before the absorbing edges remove probability.</p>
+</main>
+<script>
+(() => {
+const $ = id => document.getElementById(id), msg = $('msg');
+const OFFLINE = "Can't reach the Python server. Start it with: python server.py";
+const PALETTE = {
+  dark:  ['#6ec1ff', '#b79cff', '#7ee787', '#ff8fb1', '#f2d45c'],
+  light: ['#0b66c3', '#7a4fd6', '#1a8f3c', '#c2356f', '#9a7400'],
+};
+const pal = () => matchMedia('(prefers-color-scheme: dark)').matches ? PALETTE.dark : PALETTE.light;
+const S = { L: 360, edge: 140, k0max: 0, xs: -60, dxo: 0.06, pk: [], w: 2, meta: null, d: null,
+  paused: false, ticking: false, gen: 0, ymax0: 0.21, started: false, timer: 0,
+  view: { x0: -60, x1: 60, y0: 0, y1: 0.21 } };
+
+async function api(path, body) {
+  const r = await fetch(path, body === undefined ? {} : { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  const j = await r.json();
+  if (!r.ok) throw new Error(j.error || 'Request failed.');
+  return j;
+}
+const fail = e => { msg.textContent = e instanceof TypeError ? OFFLINE : e.message; };
+// ask the server for the visible x range plus a margin, so small pans never show gaps
+function viewBody(extra) {
+  const v = S.view, pad = (v.x1 - v.x0) * 0.25;
+  return { ...extra, xmin: Math.max(-S.L / 2, v.x0 - pad), xmax: Math.min(S.L / 2, v.x1 + pad) };
+}
+
+function info() {
+  const d = S.d, specs = S.meta && S.meta.specs; if (!d || !specs) return;
+  const P = pal();
+  $('pk').innerHTML = specs.map((m, j) => {
+    const p = d.packets[j], done = p.measured;
+    const l = done ? p.p_left_meas : p.p_left, r = done ? p.p_right_meas : p.p_right;
+    const regime = m.forbidden ? 'E &lt; V₀, tunneling' : 'E &gt; V₀, classical';
+    return `<tr><td><span class="sw" style="background:${P[j]}"></span></td><td>${m.k0.toFixed(2)}</td><td>${m.energy.toFixed(2)}</td>` +
+      `<td>${m.t_analytic.toFixed(5)}</td><td>${l.toFixed(5)}</td><td>${r.toFixed(5)}</td>` +
+      `<td class="st">${regime}${done ? ' · measured' : d.frame ? ' · interacting' : ''}</td></tr>`;
+  }).join('');
+  $('range').textContent = `Every packet's k₀ must stay below ${S.k0max.toFixed(1)} on this grid.`;
+}
+
+const cv = $('cv'), ctx = cv.getContext('2d');
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function rect() {
+  const dpr = devicePixelRatio || 1, m = { l: 58 * dpr, r: 14 * dpr, t: 14 * dpr, b: 40 * dpr };
+  return { dpr, m, pw: cv.width - m.l - m.r, ph: cv.height - m.t - m.b };
+}
+function resize() {
+  const r = cv.getBoundingClientRect(), dpr = devicePixelRatio || 1;
+  cv.width = Math.round(r.width * dpr); cv.height = Math.round(r.height * dpr); render();
+}
+function ticks(a, b) {
+  const raw = (b - a) / 6, p = Math.pow(10, Math.floor(Math.log10(raw))), f = raw / p;
+  const step = (f < 1.5 ? 1 : f < 3 ? 2 : f < 7 ? 5 : 10) * p, out = [];
+  for (let v = Math.ceil(a / step) * step; v <= b + 1e-9; v += step) out.push(+v.toFixed(10));
+  return { out, dec: Math.max(0, -Math.floor(Math.log10(step))) };
+}
+function render() {
+  const { dpr, m, pw, ph } = rect(), v = S.view, W = cv.width, H = cv.height, P = pal();
+  const X = a => m.l + (a - v.x0) / (v.x1 - v.x0) * pw, Y = a => m.t + ph - (a - v.y0) / (v.y1 - v.y0) * ph;
+  const tx = ticks(v.x0, v.x1), ty = ticks(v.y0, v.y1);
+  ctx.clearRect(0, 0, W, H);
+  ctx.font = `${11 * dpr}px ui-monospace,Menlo,Consolas,monospace`; ctx.lineWidth = dpr;
+  ctx.save(); ctx.beginPath(); ctx.rect(m.l, m.t, pw, ph); ctx.clip();
+  ctx.fillStyle = css('--muted'); ctx.globalAlpha = 0.12;
+  ctx.fillRect(X(-S.L / 2), m.t, X(-S.edge) - X(-S.L / 2), ph); ctx.fillRect(X(S.edge), m.t, X(S.L / 2) - X(S.edge), ph);
+  ctx.globalAlpha = 1; ctx.strokeStyle = css('--grid');
+  for (const a of tx.out) { ctx.beginPath(); ctx.moveTo(X(a), m.t); ctx.lineTo(X(a), m.t + ph); ctx.stroke(); }
+  for (const a of ty.out) { ctx.beginPath(); ctx.moveTo(m.l, Y(a)); ctx.lineTo(m.l + pw, Y(a)); ctx.stroke(); }
+  ctx.fillStyle = css('--barrier'); ctx.globalAlpha = 0.25;
+  ctx.fillRect(X(-S.w / 2), m.t, X(S.w / 2) - X(-S.w / 2), ph); ctx.globalAlpha = 1;
+  S.pk.forEach((dens, j) => {
+    const n = dens.length; if (!n) return;
+    ctx.beginPath();
+    for (let i = 0; i < n; i++) { const px = X(S.xs + i * S.dxo), py = Y(dens[i]); i ? ctx.lineTo(px, py) : ctx.moveTo(px, py); }
+    ctx.save(); ctx.lineTo(X(S.xs + (n - 1) * S.dxo), Y(0)); ctx.lineTo(X(S.xs), Y(0)); ctx.closePath();
+    ctx.globalAlpha = 0.12; ctx.fillStyle = P[j]; ctx.fill(); ctx.restore();
+    ctx.save(); ctx.strokeStyle = P[j]; ctx.lineWidth = 1.8 * dpr; ctx.lineJoin = 'round';
+    ctx.shadowColor = P[j]; ctx.shadowBlur = 7 * dpr; ctx.stroke(); ctx.restore();
+  });
+  ctx.restore();
+  ctx.fillStyle = css('--muted'); ctx.textAlign = 'center';
+  for (const a of tx.out) ctx.fillText(a, X(a), m.t + ph + 16 * dpr);
+  ctx.textAlign = 'right';
+  for (const a of ty.out) ctx.fillText(a.toFixed(ty.dec), m.l - 6 * dpr, Y(a) + 4 * dpr);
+  ctx.textAlign = 'center'; ctx.fillText('x', m.l + pw / 2, H - 6 * dpr);
+  ctx.save(); ctx.translate(12 * dpr, m.t + ph / 2); ctx.rotate(-Math.PI / 2); ctx.fillText('Probability density |ψ|²', 0, 0); ctx.restore();
+  const lx = m.l + pw - 120 * dpr, one = S.pk.length <= 1;           // legend
+  ctx.textAlign = 'left';
+  S.pk.forEach((_, j) => {
+    const ly = m.t + (13 + 16 * j) * dpr;
+    ctx.fillStyle = P[j]; ctx.fillRect(lx, ly - 3 * dpr, 14 * dpr, 3 * dpr);
+    ctx.fillStyle = css('--text'); ctx.fillText(one ? '|ψ(x,t)|²' : 'Packet ' + (j + 1), lx + 20 * dpr, ly + dpr);
+  });
+  const by = m.t + (13 + 16 * S.pk.length) * dpr;
+  ctx.fillStyle = css('--barrier'); ctx.globalAlpha = 0.5; ctx.fillRect(lx, by - 6 * dpr, 14 * dpr, 8 * dpr); ctx.globalAlpha = 1;
+  ctx.fillStyle = css('--text'); ctx.fillText('Barrier', lx + 20 * dpr, by + dpr);
+}
+
+function apply(d) { S.d = d; S.pk = d.packets.map(p => p.density); S.xs = d.x0; S.dxo = d.dx_out; info(); render(); }
+
+async function tick() {
+  if (S.ticking) return;
+  S.ticking = true;
+  try {
+    while (!S.paused) {
+      const g = S.gen, t0 = performance.now();
+      const d = await api('/api/step', viewBody({ advance: true }));
+      if (g !== S.gen) continue;              // a new Run happened mid-request: drop this frame
+      apply(d);
+      if (d.finished) break;
+      const wait = 25 - (performance.now() - t0);
+      if (wait > 0) await new Promise(r => setTimeout(r, wait));
+    }
+  } catch (e) { fail(e); }
+  S.ticking = false;
+}
+
+// panning / zooming: redraw at once, then (if no frames are streaming) refetch the new range
+async function refresh() {
+  if (S.ticking || !S.meta) return;
+  try { apply(await api('/api/step', viewBody({ advance: false }))); } catch (e) { fail(e); }
+}
+function viewChanged() {
+  const v = S.view, w = v.x1 - v.x0;
+  if (w >= S.L) { v.x0 = -S.L / 2; v.x1 = S.L / 2; }
+  else if (v.x0 < -S.L / 2) { v.x0 = -S.L / 2; v.x1 = v.x0 + w; }
+  else if (v.x1 > S.L / 2) { v.x1 = S.L / 2; v.x0 = v.x1 - w; }
+  render(); clearTimeout(S.timer); S.timer = setTimeout(refresh, 50);
+}
+function resetView() { S.view = { x0: -60, x1: 60, y0: 0, y1: S.ymax0 }; viewChanged(); }
+
+let drag = null;
+cv.addEventListener('pointerdown', e => { cv.setPointerCapture(e.pointerId); drag = { x: e.clientX, y: e.clientY, v: { ...S.view } }; cv.style.cursor = 'grabbing'; });
+cv.addEventListener('pointermove', e => {
+  if (!drag) return;
+  const { pw, ph } = rect(), k = cv.width / cv.getBoundingClientRect().width, v0 = drag.v;
+  const dxd = (e.clientX - drag.x) * k / pw * (v0.x1 - v0.x0), dyd = (e.clientY - drag.y) * k / ph * (v0.y1 - v0.y0);
+  S.view = { x0: v0.x0 - dxd, x1: v0.x1 - dxd, y0: v0.y0 + dyd, y1: v0.y1 + dyd };
+  viewChanged();
+});
+const endDrag = () => { drag = null; cv.style.cursor = 'grab'; };
+cv.addEventListener('pointerup', endDrag); cv.addEventListener('pointercancel', endDrag);
+cv.addEventListener('wheel', e => {
+  e.preventDefault();
+  const { m, pw, ph } = rect(), r = cv.getBoundingClientRect(), k = cv.width / r.width, v = S.view;
+  const f = (e.deltaY || e.deltaX) > 0 ? 1.15 : 1 / 1.15;
+  if (e.shiftKey || e.ctrlKey) {
+    const yc = v.y0 + (1 - ((e.clientY - r.top) * k - m.t) / ph) * (v.y1 - v.y0);
+    v.y0 = yc - (yc - v.y0) * f; v.y1 = yc + (v.y1 - yc) * f;
+  } else {
+    const xc = v.x0 + (((e.clientX - r.left) * k - m.l) / pw) * (v.x1 - v.x0), a = xc - (xc - v.x0) * f, b = xc + (v.x1 - xc) * f;
+    if (b - a < 2) return;
+    v.x0 = a; v.x1 = b;
+  }
+  viewChanged();
+}, { passive: false });
+cv.addEventListener('dblclick', resetView);
+$('rv').addEventListener('click', resetView);
+
+async function run() {
+  const body = { V0: $('V0').value, width: $('bw').value, k0: $('k0').value, dk: $('dk').value, count: $('np').value };
+  try {
+    const d = await api('/api/reset', viewBody(body));
+    S.gen++; msg.textContent = '';
+    S.meta = d; S.w = d.width; S.ymax0 = d.ymax; S.paused = false; $('pp').textContent = 'Pause';
+    if (!S.started) { S.started = true; S.view.y1 = d.ymax; }
+    apply(d); tick();
+  } catch (e) { fail(e); }
+}
+$('run').addEventListener('click', run);
+$('np').addEventListener('input', e => { $('nval').textContent = e.target.value; });
+$('np').addEventListener('change', run);              // adding or removing a packet restarts the simulation
+document.querySelectorAll('input').forEach(i => i.addEventListener('keydown', e => { if (e.key === 'Enter') run(); }));
+$('pp').addEventListener('click', e => {
+  S.paused = !S.paused; e.target.textContent = S.paused ? 'Play' : 'Pause';
+  if (!S.paused) tick();
+});
+addEventListener('resize', resize);
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { info(); render(); });
+
+const ping = () => fetch('/api/ping', { method: 'POST' }).catch(() => {});
+ping(); setInterval(ping, 10000);
+addEventListener('pagehide', () => navigator.sendBeacon('/api/bye'));
+
+(async () => {
+  resize();
+  try { const c = await api('/api/config'); S.L = c.L; S.edge = c.edge_start; S.k0max = c.k0_max; $('np').max = c.max_packets; await run(); }
+  catch (e) { msg.textContent = OFFLINE; }
+})();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,12 @@
+__pycache__/
+*.pyc
+.venv/
+.idea/
+
+# PyInstaller build artifacts and the packaged executable itself --
+# binaries don't belong in git history. Attach Quantum_Tunneling.exe to a
+# GitHub Release instead of committing it directly.
+build/
+dist/
+*.spec
+*.exe
